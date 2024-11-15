@@ -1,100 +1,123 @@
 package guiView;
 
+import GUIInterface.SideInterface;
+import guiPresenter.SidePresenter;
+
 import javax.swing.*;
+import javax.swing.event.ListSelectionListener;
+import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
+import java.awt.event.ActionListener;
+import java.io.File;
+import java.util.ArrayList;
 
-public class SidePanel extends JPanel {
-    private FileView fileView;
-    private TextListView textListView;
+public class SidePanel extends JPanel implements SideInterface.SideViewInterface {
+
+    private final FileView fileView;//파일 트리 뷰
+    private final TextListView textListView;//액티브 파일 리스트
+    private final JPanel sideButtonPanel;//버튼 세 개
+
+    private TreeSelectionListener fileTreeListener;
+    private ListSelectionListener textListListener;
+    private ActionListener sideButtonListener;
 
     public SidePanel() {
+        SidePresenter sidePresenter = new SidePresenter(this);
+
         setLayout(new BorderLayout());
 
-        // FileView와 TextListView 초기화
+        sideButtonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
         fileView = new FileView();
         textListView = new TextListView();
 
-        // JSplitPane으로 FileView와 TextListView를 분할
-        JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, fileView, textListView);
-        splitPane.setDividerLocation(300); // 초기 분할 위치 설정
-        splitPane.setContinuousLayout(true); // 크기 조절 중 실시간 업데이트
-        splitPane.setOneTouchExpandable(true); // 분할 조절 버튼 표시
-        splitPane.setDividerSize(8); // 분할선 두께 설정
+        //버튼 추가할 때 프레젠터에도 이벤트 추가
+        ArrayList<JButton> buttonArrayList = new ArrayList<>();
+        Dimension buttonSize = new Dimension(70, 30);
+        buttonArrayList.add(new JButton("Setting"));
+        buttonArrayList.add(new JButton("Make"));
+        buttonArrayList.add(new JButton("Delete"));
 
+        for(JButton button : buttonArrayList) {
+            button.setPreferredSize(buttonSize);
+            sideButtonPanel.add(button);
+            button.addActionListener(sideButtonListener);
+        }
+
+        JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, fileView, textListView);
+        splitPane.setDividerLocation(300);
+        splitPane.setContinuousLayout(true);
+        splitPane.setOneTouchExpandable(true);
+        splitPane.setDividerSize(8);
+
+        add(sideButtonPanel, BorderLayout.NORTH);
         add(splitPane, BorderLayout.CENTER);
     }
 
-    // FileView와 TextListView에 접근하기 위한 Getters
-    public FileView getFileView() {
-        return fileView;
+    @Override
+    public void showFileTree() {//수정 필요
+
     }
 
-    public TextListView getTextListView() {
-        return textListView;
+    @Override
+    public void fileSearch() {
+
     }
 
-    // FileView 이너 클래스
-    public class FileView extends JPanel {
+    @Override
+    public void showTextList(DefaultListModel<File> fileListModel) {
+        textListView.fileList.setModel(fileListModel);
+    }
+    
+    public static class FileView extends JPanel {
         private JTextField searchField;
         private JTree fileTree;
 
         public FileView() {
             setLayout(new BorderLayout());
-
-            // 파일 찾기 필드와 파일 기능 라벨
-            JPanel filePanel = new JPanel(new GridLayout(2, 1));
+            
             searchField = new JTextField("파일 찾기");
-            JLabel fileFunctionLabel = new JLabel("파일 기능 (아이콘)");
 
-            filePanel.add(fileFunctionLabel);
-            filePanel.add(searchField);
-
-            // 파일 트리 구성
             DefaultMutableTreeNode root = new DefaultMutableTreeNode("File Folder");
             root.add(new DefaultMutableTreeNode("자바1.java"));
             root.add(new DefaultMutableTreeNode("자바2.java"));
             root.add(new DefaultMutableTreeNode("자바3.java"));
+            root.add(new DefaultMutableTreeNode(new File(System.getProperty("user.dir")).getName()));
             fileTree = new JTree(root);
 
-            // JScrollPane을 사용하여 fileTree에 스크롤 추가
             JScrollPane fileTreeScrollPane = new JScrollPane(fileTree);
             fileTreeScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
             fileTreeScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 
-            // 구성 요소 추가
-            add(filePanel, BorderLayout.NORTH);
-            add(fileTreeScrollPane, BorderLayout.CENTER); // 스크롤 가능한 파일 트리 추가
+            add(searchField, BorderLayout.NORTH);
+            add(fileTreeScrollPane, BorderLayout.CENTER);
         }
 
-        // 파일 찾기 필드에 접근하기 위한 Getter
-        public JTextField getSearchField() {
-            return searchField;
-        }
-
-        // 파일 트리에 접근하기 위한 Getter
-        public JTree getFileTree() {
-            return fileTree;
-        }
     }
 
-    // TextListView 이너 클래스
     public class TextListView extends JPanel {
-        private JList<String> textList;
+        private final DefaultListModel<File> textFileList;
+        private JList<File> fileList;
 
         public TextListView() {
             setLayout(new BorderLayout());
 
-            // 텍스트 리스트 구성
-            textList = new JList<>(new String[]{"자바1.java [x]", "자바2.java [x]"});
-            JScrollPane scrollPane = new JScrollPane(textList);
+            fileList = new JList<>();
+            textFileList = new DefaultListModel<>();
+            fileList.setModel(textFileList);
+            fileList.addListSelectionListener(textListListener);
 
+            fileList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+            JScrollPane scrollPane = new JScrollPane(fileList);
             add(scrollPane, BorderLayout.CENTER);
         }
 
-        // 텍스트 리스트에 접근하기 위한 Getter
-        public JList<String> getTextList() {
-            return textList;
-        }
+    }
+
+    public void setEventListner(TreeSelectionListener fileTreeListener, ListSelectionListener textListListener, ActionListener buttonListener) {
+        this.fileTreeListener = fileTreeListener;
+        this.textListListener = textListListener;
+        this.sideButtonListener = buttonListener;
     }
 }
